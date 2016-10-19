@@ -79,13 +79,13 @@ public class BatteryGraph extends Activity {
 
 			Paint paintP = new Paint();
             paintP.setStrokeWidth(0);
-            paintP.setColor(Color.RED);
+            paintP.setColor(Color.YELLOW);
 			Paint paintT = new Paint();
             paintT.setStrokeWidth(0);
             paintT.setColor(Color.GREEN);
 			Paint paintV = new Paint();
             paintV.setStrokeWidth(0);
-            paintV.setColor(Color.BLUE);
+            paintV.setColor(Color.RED);
             
 			int margX = 5;
 			int margYTop = 5;
@@ -93,24 +93,21 @@ public class BatteryGraph extends Activity {
 			long w = width - 2*margX;
 			long h = height - margYTop - margYBottom;
 
-			canvas.drawColor(Color.WHITE);
+			canvas.drawColor(Color.BLACK);
 
             if ((mRecords == null) || (mRecords.length == 0)) {
-                paint.setColor(Color.BLACK);
+                paint.setColor(Color.WHITE);
                 canvas.drawText("no data found", 10, 50, paint);
                 return;
             }
-            paint.setColor(Color.GREEN);
             for (int i = 0; i <= 10; i++) {
             	if (i == 5)
-                    paint.setColor(Color.GREEN);
+                    paint.setColor(Color.GRAY);
             	else
-                    paint.setColor(Color.YELLOW);
+                    paint.setColor(Color.DKGRAY);
             	canvas.drawLine(margX, margYTop+h*i/10, margX+w, margYTop+h*i/10, paint);
 			}
 
-            paint.setColor(Color.RED);
-            
             int maxRec = mRecords.length;
             long minTime = mRecords[0].timestamp;
             long maxTime = mRecords[maxRec-1].timestamp;
@@ -146,25 +143,25 @@ public class BatteryGraph extends Activity {
 
 			float x1 = margX+(w*(oldRec.timestamp-minTime)) / dTime; 
 			float yP1 = margYTop+h-(h*oldRec.level) / rec.scale; 
-			float yT1 = margYTop+h-(h*oldRec.level) / 1000; 
-			float yV1 = margYTop+h-(h*oldRec.level) / 10000; 
+			float yT1 = margYTop+h-(h*oldRec.temperature) / 1000; 
+			float yV1 = margYTop+h-(h*oldRec.voltage) / 10000; 
 			float x2 = margX+(w*(   rec.timestamp-minTime)) / dTime; 
 			float yP2 = margYTop+h-(h*   rec.level) / rec.scale;
-			float yT2 = margYTop+h-(h*   rec.level) / 1000;
-			float yV2 = margYTop+h-(h*   rec.level) / 10000;
+			float yT2 = margYTop+h-(h*   rec.temperature) / 1000;
+			float yV2 = margYTop+h-(h*   rec.voltage) / 10000;
 			
 			if (rec.count == 1) {
 				canvas.drawLine(x1, yP1, x1, margYTop+h, paintP);
-				canvas.drawLine(x1, yT1, x1, margYTop+h, paintT);
 				canvas.drawLine(x1, yV1, x1, margYTop+h, paintV);
+				canvas.drawLine(x1, yT1, x1, margYTop+h, paintT);
 				canvas.drawLine(x2, yP2, x2, margYTop+h, paintP);
-				canvas.drawLine(x2, yT2, x2, margYTop+h, paintT);
 				canvas.drawLine(x2, yV2, x2, margYTop+h, paintV);
+				canvas.drawLine(x2, yT2, x2, margYTop+h, paintT);
 			}
 			else {
 				canvas.drawLine(x1, yP1, x2, yP2, paintP);
-				canvas.drawLine(x1, yT1, x2, yT2, paintT);
 				canvas.drawLine(x1, yV1, x2, yV2, paintV);
+				canvas.drawLine(x1, yT1, x2, yT2, paintT);
 			}
 		}
     }
