@@ -44,8 +44,22 @@ import android.view.WindowManager;
 public class BatteryGraph extends Activity {
 
 	private final static String TAG = "BATDOG.graph";
+
+    private final static int MENU_8H    = 1;
+    private final static int MENU_24H   = 2;
+    private final static int MENU_7DAYS = 3;
+    private final static int MENU_ALL   = 4;
+	
+	private final static int margXLeft = 5;
+	private final static int margXRight = 5;
+	private final static int margYTop = 60;
+	private final static int margYBottom = 5;
+	
 	private long width = 300;
 	private long height = 300;
+	private long w = width  - margXLeft - margXRight;
+	private long h = height - margYTop  - margYBottom;
+
 	private long mDeltaTime = 24*60*60*1000;
 	private long mOffset = 0;
 	private GraphView mGraphView;
@@ -57,11 +71,6 @@ public class BatteryGraph extends Activity {
         setContentView(mGraphView);
     }
 
-
-    private final static int MENU_8H    = 1;
-    private final static int MENU_24H   = 2;
-    private final static int MENU_7DAYS = 3;
-    private final static int MENU_ALL   = 4;
     /**
      * Called when your activity's options menu needs to be created.
      */
@@ -149,7 +158,7 @@ public class BatteryGraph extends Activity {
         	}
         	else if (event.getAction() == MotionEvent.ACTION_MOVE) {
 
-        		Log.i(TAG, event.toString()+" - " + event.getHistorySize());
+//        		Log.i(TAG, event.toString()+" - " + event.getHistorySize());
         		float x = event.getRawX();
         		float dx = x-mLastX;
         		mLastX = x;
@@ -166,32 +175,27 @@ public class BatteryGraph extends Activity {
             super(context);
             readRecords();
 
-            Display display = ((WindowManager) context.getSystemService(WINDOW_SERVICE)).getDefaultDisplay();  
+            Display display = ((WindowManager) context.getSystemService(WINDOW_SERVICE)).getDefaultDisplay();
             width = display.getWidth();  
-            height = display.getHeight();  
-//            int orientation = display.getOrientation();              
+            height = display.getHeight();
+        	w = width - margXLeft - margXRight;
+        	h = height - margYTop - margYBottom;
         }
         
-        @Override protected void onDraw(Canvas canvas) {
+		@Override protected void onDraw(Canvas canvas) {
 			Paint paint = mPaint;
             paint.setStrokeWidth(0);
 
 			Paint paintP = new Paint();
             paintP.setStrokeWidth(0);
             paintP.setColor(Color.YELLOW);
-			Paint paintT = new Paint();
-            paintT.setStrokeWidth(0);
-            paintT.setColor(Color.GREEN);
 			Paint paintV = new Paint();
             paintV.setStrokeWidth(0);
             paintV.setColor(Color.RED);
+			Paint paintT = new Paint();
+            paintT.setStrokeWidth(0);
+            paintT.setColor(Color.GREEN);
             
-			int margX = 5;
-			int margYTop = 5;
-			int margYBottom = 60;
-			long w = width - 2*margX;
-			long h = height - margYTop - margYBottom;
-
 			canvas.drawColor(Color.BLACK);
 
             if ((mRecords == null) || (mRecords.length == 0)) {
@@ -199,14 +203,9 @@ public class BatteryGraph extends Activity {
                 canvas.drawText("no data found", 10, 50, paint);
                 return;
             }
-            for (int i = 0; i <= 10; i++) {
-            	if (i == 5)
-                    paint.setColor(Color.GRAY);
-            	else
-                    paint.setColor(Color.DKGRAY);
-            	canvas.drawLine(margX, margYTop+h*i/10, margX+w, margYTop+h*i/10, paint);
-			}
-
+            
+            drawMarker(canvas, paintP, paintV, paintT);
+            
             int maxRec = mRecords.length;
             long minTime = mRecords[0].timestamp;
             long maxTime = mRecords[maxRec-1].timestamp;
@@ -228,37 +227,51 @@ public class BatteryGraph extends Activity {
             	else
             		rec = mRecords[i];
 
-    			drawRecordLine(canvas, rec, oldRec, minTime, dTime, paintP, paintT, paintV);
+    			drawRecordLine(canvas, rec, oldRec, minTime, dTime, paintP, paintV, paintT);
 			}
         }
+
+		private void drawMarker(Canvas canvas, Paint paintP, Paint paintV, Paint paintT) {
+			Paint paint = new Paint();
+            for (int i = 0; i <= 10; i++) {
+            	if (i == 5)
+                    paint.setColor(Color.GRAY);
+            	else
+                    paint.setColor(Color.DKGRAY);
+            	float x = margXLeft;
+            	float y = margYBottom+h*(10-i)/10;
+            	canvas.drawLine(x, y, x+w, y, paint);
+			}
+        	canvas.drawText("100%", margXLeft, margYBottom+13, paintP);
+        	canvas.drawText("4V", margXLeft, margYBottom+h*6/10+13, paintV);
+        	canvas.drawText("30°", margXLeft, margYBottom+h*7/10+13, paintT);
+        	canvas.drawText("100%", margXLeft+w-20, margYBottom+13, paintP);
+        	canvas.drawText("4V", margXLeft+w-20, margYBottom+h*6/10+13, paintV);
+        	canvas.drawText("30°", margXLeft+w-20, margYBottom+h*7/10+13, paintT);
+		}
 
 		private void drawRecordLine(Canvas canvas, 
 				BatteryRecord rec, BatteryRecord oldRec,
 				long minTime, long dTime,
-				Paint paintP, Paint paintT, Paint paintV 
+				Paint paintP, Paint paintV, Paint paintT 
 				) {
-			int margX = 5;
-			int margYTop = 5;
-			int margYBottom = 60;
-			long w = width - 2*margX;
-			long h = height - margYTop - margYBottom;
 
-			float x1 = margX+(w*(oldRec.timestamp-minTime)) / dTime; 
-			float yP1 = margYTop+h-(h*oldRec.level) / rec.scale; 
-			float yT1 = margYTop+h-(h*oldRec.temperature) / 1000; 
-			float yV1 = margYTop+h-(h*oldRec.voltage) / 10000; 
-			float x2 = margX+(w*(   rec.timestamp-minTime)) / dTime; 
-			float yP2 = margYTop+h-(h*   rec.level) / rec.scale;
-			float yT2 = margYTop+h-(h*   rec.temperature) / 1000;
-			float yV2 = margYTop+h-(h*   rec.voltage) / 10000;
+			float x1 = margXLeft+(w*(oldRec.timestamp-minTime)) / dTime; 
+			float yP1 = margYBottom+h-(h*oldRec.level) / rec.scale; 
+			float yV1 = margYBottom+h-(h*oldRec.voltage) / 10000; 
+			float yT1 = margYBottom+h-(h*oldRec.temperature) / 1000; 
+			float x2 = margXLeft+(w*(   rec.timestamp-minTime)) / dTime; 
+			float yP2 = margYBottom+h-(h*   rec.level) / rec.scale;
+			float yV2 = margYBottom+h-(h*   rec.voltage) / 10000;
+			float yT2 = margYBottom+h-(h*   rec.temperature) / 1000;
 			
 			if (rec.count == 1) {
-				canvas.drawLine(x1, yP1, x1, margYTop+h, paintP);
-				canvas.drawLine(x1, yV1, x1, margYTop+h, paintV);
-				canvas.drawLine(x1, yT1, x1, margYTop+h, paintT);
-				canvas.drawLine(x2, yP2, x2, margYTop+h, paintP);
-				canvas.drawLine(x2, yV2, x2, margYTop+h, paintV);
-				canvas.drawLine(x2, yT2, x2, margYTop+h, paintT);
+				canvas.drawLine(x1, yP1, x1, margYBottom+h, paintP);
+				canvas.drawLine(x1, yV1, x1, margYBottom+h, paintV);
+				canvas.drawLine(x1, yT1, x1, margYBottom+h, paintT);
+				canvas.drawLine(x2, yP2, x2, margYBottom+h, paintP);
+				canvas.drawLine(x2, yV2, x2, margYBottom+h, paintV);
+				canvas.drawLine(x2, yT2, x2, margYBottom+h, paintT);
 			}
 			else {
 				canvas.drawLine(x1, yP1, x2, yP2, paintP);
@@ -268,6 +281,15 @@ public class BatteryGraph extends Activity {
 		}
     }
 
+//    class BatRecCache {
+//    	float x;
+//    	float yP;
+//    	float yV;
+//    	float yT;
+//    	public BatRecCache(BatteryRecord rec) {
+//    	}
+//    }
+//    
     class BatteryRecord {
 		int count;
     	long timestamp;
@@ -282,6 +304,7 @@ public class BatteryGraph extends Activity {
     		this.scale = scale;
     		this.voltage = voltage;
     		this.temperature = temperature;
+    		
 		}
     }
     
