@@ -19,7 +19,7 @@
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *  
  *******************************************************************************/
-package de.hechler.batterydog;
+package net.sf.andbatdog.batterydog;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -33,7 +33,6 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.os.Bundle;
 import android.os.Environment;
-import android.util.Log;
 import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
