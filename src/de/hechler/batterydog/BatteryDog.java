@@ -24,6 +24,8 @@ package de.hechler.batterydog;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -34,9 +36,16 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup.LayoutParams;
+import android.view.ViewStub.OnInflateListener;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ScrollView;
+import android.widget.TableLayout;
+import android.widget.TableRow;
+import android.widget.TextView;
 import android.widget.Toast;
 
 public class BatteryDog extends Activity {
@@ -71,22 +80,6 @@ public class BatteryDog extends Activity {
         btRefresh.setOnClickListener(RefreshListener);
         btGraph.setOnClickListener(GraphListener);
 	}
-
-    @Override
-    public void onPause() {
-         super.onPause();
-    }
-    
-    @Override
-    public void onResume() {
-         super.onResume();
-    }
-    
-    @Override
-    protected void onDestroy() {
-    	// TODO Auto-generated method stub
-    	super.onDestroy();
-    }
 
     OnClickListener StartServiceListener = new OnClickListener() {
         public void onClick(View v) {
@@ -130,7 +123,7 @@ public class BatteryDog extends Activity {
 			File root = Environment.getExternalStorageDirectory();
 			if (root == null)
 		    	throw new Exception("external storage dir not found");
-			File batteryLogFile = new File(root,"BatteryDog/battery.log");
+			File batteryLogFile = new File(root,BatteryDog_Service.LOGFILEPATH);
 			if (!batteryLogFile.exists())
 				throw new Exception("logfile '"+batteryLogFile+"' not found");
 			if (!batteryLogFile.canRead())
@@ -158,18 +151,45 @@ public class BatteryDog extends Activity {
 		}
     }
 
-	private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+	private SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+	private DecimalFormat dfT = new DecimalFormat("###.#");
+	private DecimalFormat dfV = new DecimalFormat("##.###");
+
 	private String parseLine(String line) {
 		if (line == null)
 			return line;
 		String[] split = line.split("[;]");
-		if (split.length != 3)
+		if (split.length < 6)
 			return line;
-		Long time = Long.parseLong(split[1]);
-//		Calendar cal = Calendar.getInstance();
-//		cal.setTimeInMillis(time);
-		String timestamp = sdf.format(new Date(time));
-		return split[0]+" "+timestamp + " " + split[2] + "%";
+		if (split[0].equals("Nr"))
+			return line;
+		try {
+			int count = Integer.parseInt(split[0]);
+			long time = Long.parseLong(split[1]);
+			int level = Integer.parseInt(split[2]);
+			int scale = Integer.parseInt(split[3]);
+			int percent = level*100/scale;
+			int voltage = Integer.parseInt(split[4]);
+			int temperature = Integer.parseInt(split[5]);
+			double v = 0.001*voltage;
+			double t = 0.1*temperature;
+			String timestamp = sdf.format(new Date(time));
+			StringBuffer result = new StringBuffer();
+			result.append(Integer.toString(count)).append(". ")
+					.append(timestamp).append(" ")
+					.append(percent).append("% ")
+					.append(dfV.format(v)).append("V ")
+					.append(dfT.format(t)).append("° ")
+					;
+			for (int i = 6; i < split.length; i++) {
+				result.append(" ").append(split[i]);
+			}
+			return result.toString();
+		}
+		catch (Exception e) {
+			Log.e(TAG, e.getMessage(), e);
+			return line;
+		}
 	}
     
 }

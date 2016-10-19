@@ -29,6 +29,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
 import android.util.Log;
@@ -37,31 +38,31 @@ import android.widget.Toast;
 public class BatteryDog_Service extends Service {
 
 	private final static String TAG = "BATDOG.service";
+	
+	public static final String LOGFILEPATH = "BatteryDog/battery.csv";
+	
+	private final static String[] batteryExtraKeys = {"level", "scale", "voltage", "temperature", "plugged", "status", "health", "present", "technology", "icon-small"};
 
 	private File mBatteryLogFile;
 	private int mCount;
-	private int mLastLevel;
+	private Intent mLastBatteryIntent;
     private boolean mQuitThread;
     private boolean mThreadRunning;
 
 
-	
-	@Override
-	public void onStart(Intent intent, int startId) {
-		super.onStart(intent, startId);
+    @Override
+    public void onCreate() {
+    	super.onCreate();
 		if (!mThreadRunning) {
 			mCount = 0;
-			mLastLevel = -1;
+			mLastBatteryIntent = null;
 			mQuitThread = false;
-	        // Start up the thread running the service.  Note that we create a
-	        // separate thread because the service normally runs in the process's
-	        // main thread, which we don't want to block.
 	        Thread thr = new Thread(null, mTask, "BatteryDog_Service");
 	        thr.start();
 			registerReceiver(mBatInfoReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
 	        Toast.makeText(this, "BatteryDog Service started", Toast.LENGTH_SHORT).show();
 		}
-	}
+    }
 	
 	@Override
 	public void onDestroy() {
@@ -85,7 +86,7 @@ public class BatteryDog_Service extends Service {
 		public void onReceive(Context ctx, Intent intent) {
 			try {
             	mCount += 1;
-				mLastLevel = intent.getIntExtra("level", 0);
+				mLastBatteryIntent = (Intent) intent.clone();
 				notifyService();
 			}
 			catch (Exception e) {
@@ -95,8 +96,8 @@ public class BatteryDog_Service extends Service {
 
 	};
 
-	private void logLevel(int level) {
-		if (level == -1)
+	private void logBattery(Intent batteryChangeIntent) {
+		if (batteryChangeIntent == null)
 			return;
 		try {
 			FileWriter out = null;
@@ -110,8 +111,9 @@ public class BatteryDog_Service extends Service {
 				File root = Environment.getExternalStorageDirectory();
 				if (root == null)
 					throw new Exception("external storage dir not found");
-				mBatteryLogFile = new File(root,"BatteryDog/battery.log");
-				if (!mBatteryLogFile.exists()) {
+				mBatteryLogFile = new File(root,BatteryDog_Service.LOGFILEPATH);
+				boolean fileExists = mBatteryLogFile.exists();
+				if (!fileExists) {
 					mBatteryLogFile.getParentFile().mkdirs();
 					mBatteryLogFile.createNewFile();
 				}
@@ -120,8 +122,18 @@ public class BatteryDog_Service extends Service {
 				if (!mBatteryLogFile.canWrite()) 
 					throw new Exception("file '"+mBatteryLogFile.toString()+"' is not writable");
 				out = new FileWriter(mBatteryLogFile, true);
+				if (!fileExists) {
+					String header = createHeadLine();
+					out.write(header);
+					out.write("\n");
+				}
 			}
-			out.write(mCount+";"+System.currentTimeMillis()+";"+level+"\n");
+			if (mLastBatteryIntent != null) {
+				String extras = createBatteryInfoLine(mLastBatteryIntent);
+				out.write(extras);
+				out.write("\n");
+			}
+			out.flush();
 			out.close();
 		} catch (Exception e) {
 			Log.e(TAG,e.getMessage(),e);
@@ -129,7 +141,25 @@ public class BatteryDog_Service extends Service {
 	}
 
 	
-    /**
+    private String createHeadLine() {
+    	StringBuffer result = new StringBuffer();
+    	result.append("Nr;TimeMillis");
+    	for (String key : batteryExtraKeys)
+			result.append(";").append(key);
+		return result.toString();
+	}
+
+	private String createBatteryInfoLine(Intent batteryIntent) {
+    	StringBuffer result = new StringBuffer();
+    	result.append(Integer.toString(mCount)).append(";").append(Long.toString(System.currentTimeMillis()));
+    	Bundle extras = batteryIntent.getExtras();
+    	for (String key : batteryExtraKeys)
+			result.append(";").append(extras.get(key));
+		return result.toString();
+	}
+
+
+	/**
      * The function that runs in our worker thread
      */
     Runnable mTask = new Runnable() {
@@ -138,7 +168,7 @@ public class BatteryDog_Service extends Service {
             mThreadRunning = true;
             Log.i(TAG,"STARTING BATTERYDOG TASK");
             while (!mQuitThread) {
-				logLevel(mLastLevel);
+				logBattery(mLastBatteryIntent);
                 synchronized (BatteryDog_Service.this) {
                 	try {
                     	BatteryDog_Service.this.wait();
@@ -146,7 +176,7 @@ public class BatteryDog_Service extends Service {
                 }
             }
             mThreadRunning = false;
-			logLevel(mLastLevel);
+			logBattery(mLastBatteryIntent);
             Log.i(TAG,"LEAVING BATTERYDOG TASK");
         }
 
