@@ -139,7 +139,23 @@ public class BatteryGraph extends Activity {
         		Log.e(TAG,e.getMessage(), e);
 			}
         }
-    
+
+        @Override
+        public boolean onTouchEvent(MotionEvent event) {
+        	super.onTouchEvent(event);
+        	if (event.getAction() == MotionEvent.ACTION_MOVE) {
+        		float oldX = event.getHistoricalX(0);
+        		float x = event.getX();
+        		float dx = x-oldX;
+        		long ldx = (long)(mDeltaTime*dx/width);
+        		mOffset -= ldx;
+    			if (mOffset > 0)
+    				mOffset = 0;
+    			mGraphView.invalidate();
+        	}
+        	return true;
+        }
+        
         public GraphView(Context context) {
             super(context);
             readRecords();
