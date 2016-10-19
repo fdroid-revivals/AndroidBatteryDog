@@ -27,7 +27,6 @@ import java.io.FileReader;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 
 import android.app.Activity;
@@ -36,27 +35,22 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.View.OnClickListener;
-import android.view.ViewGroup.LayoutParams;
-import android.view.ViewStub.OnInflateListener;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ScrollView;
-import android.widget.TableLayout;
-import android.widget.TableRow;
-import android.widget.TextView;
 import android.widget.Toast;
 
 public class BatteryDog extends Activity {
 
-	private static final int MAX_OUTPUT_LINES = 100;
+	private static final int OUTPUT_LINES = 100;
+	private static final int LINE_LENGTH = 50;
 
 	private static final String TAG = "BATDOG";
 	
 	private Button btStart;
 	private Button btStop;
-	private Button btRefresh;
+	private Button btRawFormat;
+	private Button btShowFormated;
 	private Button btGraph;
 	private EditText mOutput;
 	
@@ -71,13 +65,15 @@ public class BatteryDog extends Activity {
         // find buttons in view
         btStart = ((Button) findViewById(R.id.btStart));
         btStop = ((Button) findViewById(R.id.btStop));
-        btRefresh = ((Button) findViewById(R.id.btRefresh));
+        btRawFormat= ((Button) findViewById(R.id.btRawFormat));
+        btShowFormated= ((Button) findViewById(R.id.btShowFormated));
         btGraph = ((Button) findViewById(R.id.btGraph));
 
         // set actions for buttons
         btStart.setOnClickListener(StartServiceListener);
         btStop.setOnClickListener(StopServiceListener);
-        btRefresh.setOnClickListener(RefreshListener);
+        btRawFormat.setOnClickListener(RawFormatListener);
+        btShowFormated.setOnClickListener(ShowFormatedListener);
         btGraph.setOnClickListener(GraphListener);
 	}
 
@@ -105,9 +101,15 @@ public class BatteryDog extends Activity {
        	}
     };
 
-    OnClickListener RefreshListener = new OnClickListener() {
+    OnClickListener RawFormatListener = new OnClickListener() {
         public void onClick(View v) {
-        	updateLog();
+        	updateLog(false);
+       	}
+    };
+
+    OnClickListener ShowFormatedListener = new OnClickListener() {
+        public void onClick(View v) {
+        	updateLog(true);
        	}
     };
 
@@ -118,7 +120,7 @@ public class BatteryDog extends Activity {
     };
 
 
-    private void updateLog() {
+    private void updateLog(boolean doFormat) {
 		try {
 			File root = Environment.getExternalStorageDirectory();
 			if (root == null)
@@ -128,21 +130,29 @@ public class BatteryDog extends Activity {
 				throw new Exception("logfile '"+batteryLogFile+"' not found");
 			if (!batteryLogFile.canRead())
 				throw new Exception("logfile '"+batteryLogFile+"' not readable");
+			long len = batteryLogFile.length();
+			int size = (int)Math.min((long)OUTPUT_LINES*LINE_LENGTH, len);
+			StringBuffer text = new StringBuffer(size);
 			FileReader reader = new FileReader(batteryLogFile);
 			BufferedReader in = new BufferedReader(reader);
-			ArrayList<String> lines = new ArrayList<String>(); 
+			if (doFormat) {
+				text.append(in.readLine()).append("\n");
+			}
+			if (len > OUTPUT_LINES*LINE_LENGTH) {
+				in.skip(len-OUTPUT_LINES*LINE_LENGTH);
+				// skip incomplete line
+				in.readLine();
+			}
 			String line = in.readLine();
 			while (line != null) {
-				lines.add(line);
+				if (doFormat) {
+					line = parseLine(line);
+				}
+				if (line != null)
+					text.append(line).append("\n");
 				line = in.readLine();
 			}
 			in.close();
-			int maxLine = lines.size();
-			int minLine = Math.max(0, maxLine-MAX_OUTPUT_LINES);
-			StringBuffer text = new StringBuffer();
-			for (int i = maxLine-1; i >= minLine; i--) {
-				text.append(parseLine(lines.get(i))).append("\n");
-			}
 			mOutput.setText(text.toString());
 		} 
 		catch (Exception e) {

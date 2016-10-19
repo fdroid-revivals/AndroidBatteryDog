@@ -35,6 +35,9 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import android.view.Display;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 
@@ -43,14 +46,88 @@ public class BatteryGraph extends Activity {
 	private final static String TAG = "BATDOG.graph";
 	private long width = 300;
 	private long height = 300;
+	private long mDeltaTime = 24*60*60*1000;
+	private long mOffset = 0;
+	private GraphView mGraphView;
 	
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(new SampleView(this));
+        mGraphView = new GraphView(this);
+        setContentView(mGraphView);
+    }
+
+
+    private final static int MENU_8H    = 1;
+    private final static int MENU_24H   = 2;
+    private final static int MENU_7DAYS = 3;
+    private final static int MENU_ALL   = 4;
+    /**
+     * Called when your activity's options menu needs to be created.
+     */
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        menu.add(Menu.NONE, MENU_8H,    Menu.NONE, "8h");
+        menu.add(Menu.NONE, MENU_24H,   Menu.NONE, "24h");
+        menu.add(Menu.NONE, MENU_7DAYS, Menu.NONE, "7 days");
+        menu.add(Menu.NONE, MENU_ALL,   Menu.NONE, "all");
+        return true;
     }
     
-    private class SampleView extends View {
+    /**
+     * Called when a menu item is selected.
+     */
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+    	if (item.getItemId() == MENU_8H) {
+    		mDeltaTime = 8*60*60*1000;
+			mOffset = 0;
+    		mGraphView.invalidate();
+    	}
+    	else if (item.getItemId() == MENU_24H) {
+    		mDeltaTime = 24*60*60*1000;
+			mOffset = 0;
+    		mGraphView.invalidate();
+    	}
+    	else if (item.getItemId() == MENU_7DAYS) {
+    		mDeltaTime = 7*24*60*60*1000;
+			mOffset = 0;
+    		mGraphView.invalidate();
+    	}
+    	else if (item.getItemId() == MENU_ALL) {
+    		mDeltaTime = 0;
+			mOffset = 0;
+    		mGraphView.invalidate();
+    	}
+        return true;
+    }
+    
+    @Override
+    public boolean onTrackballEvent(MotionEvent event) {
+    	super.onTrackballEvent(event);
+    	if (event.getAction() == MotionEvent.ACTION_DOWN) {
+    		mOffset = 0;
+			mGraphView.invalidate();
+    	}
+    	else if (event.getAction() == MotionEvent.ACTION_MOVE) {
+    		float x = event.getRawX();
+    		if (x < 0) {
+    			mOffset -= mDeltaTime/5;
+    			mGraphView.invalidate();
+    		} 
+    		else if (x>0) {
+    			mOffset += mDeltaTime/5;
+    			if (mOffset > 0)
+    				mOffset = 0;
+    			mGraphView.invalidate();
+    		}
+    	}
+    	return true;
+    }
+    
+    
+    private class GraphView extends View {
         private Paint   mPaint = new Paint();
     	private BatteryRecord[] mRecords;
         
@@ -63,7 +140,7 @@ public class BatteryGraph extends Activity {
 			}
         }
     
-        public SampleView(Context context) {
+        public GraphView(Context context) {
             super(context);
             readRecords();
 
@@ -112,8 +189,11 @@ public class BatteryGraph extends Activity {
             long minTime = mRecords[0].timestamp;
             long maxTime = mRecords[maxRec-1].timestamp;
             long dTime = maxTime-minTime;
+            if (mDeltaTime != 0) {
+            	dTime = mDeltaTime;
+            	minTime = maxTime-dTime+mOffset;
+            }
             
-
         	BatteryRecord rec;
         	BatteryRecord oldRec;
 			for (int i = 0; i <= maxRec; i++) {
