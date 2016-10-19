@@ -181,9 +181,9 @@ public class BatteryDog extends Activity {
 					.append(dfV.format(v)).append("V ")
 					.append(dfT.format(t)).append("° ")
 					;
-			for (int i = 6; i < split.length; i++) {
-				result.append(" ").append(split[i]);
-			}
+//			for (int i = 6; i < split.length; i++) {
+//				result.append(" ").append(split[i]);
+//			}
 			return result.toString();
 		}
 		catch (Exception e) {
