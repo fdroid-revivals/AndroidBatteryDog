@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
       package="net.sf.andbatdog.batterydog"
-      android:versionCode="10"
-      android:versionName="0.1.0">
+      android:versionCode="11"
+      android:versionName="0.1.1">
     <uses-sdk android:minSdkVersion="3" />
 <!-- 
 	<uses-permission android:name="android.permission.BATTERY_STATS"></uses-permission>
 -->
-    <application android:icon="@drawable/battery_dog_icon" android:label="@string/app_name" android:debuggable="FALSE">
+    <application android:icon="@drawable/battery_dog_icon" android:label="@string/app_name" android:debuggable="false">
         <activity android:name=".BatteryDog" android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
