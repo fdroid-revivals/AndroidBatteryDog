@@ -44,10 +44,12 @@ public class BatteryGraph extends Activity {
 
 	private final static String TAG = "BATDOG.graph";
 
-    private final static int MENU_8H    = 1;
-    private final static int MENU_24H   = 2;
-    private final static int MENU_7DAYS = 3;
-    private final static int MENU_ALL   = 4;
+	private final static int MENU_4H    = 1;
+    private final static int MENU_8H    = 2;
+    private final static int MENU_24H   = 3;
+    private final static int MENU_3DAYS = 4;
+    private final static int MENU_7DAYS = 5;
+    private final static int MENU_ALL   = 6;
 	
 	private final static int margXLeft = 5;
 	private final static int margXRight = 5;
@@ -76,8 +78,10 @@ public class BatteryGraph extends Activity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
+        menu.add(Menu.NONE, MENU_4H,    Menu.NONE, "4h");
         menu.add(Menu.NONE, MENU_8H,    Menu.NONE, "8h");
         menu.add(Menu.NONE, MENU_24H,   Menu.NONE, "24h");
+        menu.add(Menu.NONE, MENU_3DAYS, Menu.NONE, "3 days");
         menu.add(Menu.NONE, MENU_7DAYS, Menu.NONE, "7 days");
         menu.add(Menu.NONE, MENU_ALL,   Menu.NONE, "all");
         return true;
@@ -88,13 +92,23 @@ public class BatteryGraph extends Activity {
      */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-    	if (item.getItemId() == MENU_8H) {
+    	if (item.getItemId() == MENU_4H) {
+    		mDeltaTime = 4*60*60*1000;
+			mOffset = 0;
+    		mGraphView.invalidate();
+    	}
+    	else if (item.getItemId() == MENU_8H) {
     		mDeltaTime = 8*60*60*1000;
 			mOffset = 0;
     		mGraphView.invalidate();
     	}
     	else if (item.getItemId() == MENU_24H) {
     		mDeltaTime = 24*60*60*1000;
+			mOffset = 0;
+    		mGraphView.invalidate();
+    	}
+    	else if (item.getItemId() == MENU_3DAYS) {
+    		mDeltaTime = 3*24*60*60*1000;
 			mOffset = 0;
     		mGraphView.invalidate();
     	}
@@ -108,6 +122,7 @@ public class BatteryGraph extends Activity {
 			mOffset = 0;
     		mGraphView.invalidate();
     	}
+        mGraphView.readRecords(); // update from service
         return true;
     }
     
@@ -116,6 +131,7 @@ public class BatteryGraph extends Activity {
     	super.onTrackballEvent(event);
     	if (event.getAction() == MotionEvent.ACTION_DOWN) {
     		mOffset = 0;
+            mGraphView.readRecords(); // update from service
 			mGraphView.invalidate();
     	}
     	else if (event.getAction() == MotionEvent.ACTION_MOVE) {
@@ -136,11 +152,11 @@ public class BatteryGraph extends Activity {
     
     
     private class GraphView extends View {
-        private Paint   mPaint = new Paint();
+        private Paint   mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     	private BatteryRecord[] mRecords;
     	private float mLastX;
         
-        private void readRecords() {
+        public void readRecords() {
         	try {
         		mRecords = readLog();
         	}
@@ -183,10 +199,10 @@ public class BatteryGraph extends Activity {
         
 		@Override protected void onDraw(Canvas canvas) {
 			Paint paint = mPaint;
-            paint.setStrokeWidth(0);
+            paint.setStrokeWidth(1);
 
-			Paint paintP = new Paint();
-            paintP.setStrokeWidth(0);
+			Paint paintP = new Paint(Paint.ANTI_ALIAS_FLAG);
+            paintP.setStrokeWidth(2);
             paintP.setColor(Color.YELLOW);
 			Paint paintV = new Paint();
             paintV.setStrokeWidth(0);
@@ -212,21 +228,25 @@ public class BatteryGraph extends Activity {
             if (mDeltaTime != 0) {
             	dTime = mDeltaTime;
             	minTime = maxTime-dTime+mOffset;
+            	maxTime = minTime+mDeltaTime;
             }
             
         	BatteryRecord rec;
         	BatteryRecord oldRec;
 			for (int i = 0; i <= maxRec; i++) {
             	if (i == 0)
-            		oldRec = new BatteryRecord(0, minTime, 0, 100, 0, 0);
+            		// oldRec = new BatteryRecord(0, minTime, 0, 100, 0, 0);
+            		oldRec = mRecords[0];
             	else
             		oldRec = mRecords[i-1];
             	if (i == maxRec)
-            		rec = new BatteryRecord(0, maxTime, 0, 100, 0, 0);
+            		// rec = new BatteryRecord(0, maxTime, 0, 100, 0, 0);
+            		rec = mRecords[maxRec-1];
             	else
             		rec = mRecords[i];
 
-    			drawRecordLine(canvas, rec, oldRec, minTime, dTime, paintP, paintV, paintT);
+            	if (rec.timestamp >= minTime && oldRec.timestamp <= maxTime) // clip to screen
+            		drawRecordLine(canvas, rec, oldRec, minTime, dTime, paintP, paintV, paintT);
 			}
         }
 
@@ -244,9 +264,10 @@ public class BatteryGraph extends Activity {
         	canvas.drawText("100%", margXLeft, margYBottom+13, paintP);
         	canvas.drawText("4V", margXLeft, margYBottom+h*6/10+13, paintV);
         	canvas.drawText("30°", margXLeft, margYBottom+h*7/10+13, paintT);
-        	canvas.drawText("100%", margXLeft+w-20, margYBottom+13, paintP);
+        	canvas.drawText("100%", margXLeft+w-26, margYBottom+13, paintP);
         	canvas.drawText("4V", margXLeft+w-20, margYBottom+h*6/10+13, paintV);
         	canvas.drawText("30°", margXLeft+w-20, margYBottom+h*7/10+13, paintT);
+        	canvas.drawText("2V", margXLeft+w-20, margYBottom+h*10/10, paintV);
 		}
 
 		private void drawRecordLine(Canvas canvas, 
@@ -257,26 +278,16 @@ public class BatteryGraph extends Activity {
 
 			float x1 = margXLeft+(w*(oldRec.timestamp-minTime)) / dTime; 
 			float yP1 = margYBottom+h-(h*oldRec.level) / rec.scale; 
-			float yV1 = margYBottom+h-(h*oldRec.voltage) / 10000; 
+			float yV1 = margYBottom+h-(h*2*(oldRec.voltage-2000)) / 10000; 
 			float yT1 = margYBottom+h-(h*oldRec.temperature) / 1000; 
 			float x2 = margXLeft+(w*(   rec.timestamp-minTime)) / dTime; 
-			float yP2 = margYBottom+h-(h*   rec.level) / rec.scale;
-			float yV2 = margYBottom+h-(h*   rec.voltage) / 10000;
-			float yT2 = margYBottom+h-(h*   rec.temperature) / 1000;
+			float yP2 = margYBottom+h-(h*rec.level) / rec.scale;
+			float yV2 = margYBottom+h-(h*2*(rec.voltage-2000)) / 10000;
+			float yT2 = margYBottom+h-(h*rec.temperature) / 1000;
 			
-			if (rec.count == 1) {
-				canvas.drawLine(x1, yP1, x1, margYBottom+h, paintP);
-				canvas.drawLine(x1, yV1, x1, margYBottom+h, paintV);
-				canvas.drawLine(x1, yT1, x1, margYBottom+h, paintT);
-				canvas.drawLine(x2, yP2, x2, margYBottom+h, paintP);
-				canvas.drawLine(x2, yV2, x2, margYBottom+h, paintV);
-				canvas.drawLine(x2, yT2, x2, margYBottom+h, paintT);
-			}
-			else {
-				canvas.drawLine(x1, yP1, x2, yP2, paintP);
-				canvas.drawLine(x1, yV1, x2, yV2, paintV);
-				canvas.drawLine(x1, yT1, x2, yT2, paintT);
-			}
+			canvas.drawLine(x1, yP1, x2, yP2, paintP);
+			canvas.drawLine(x1, yV1, x2, yV2, paintV);
+			canvas.drawLine(x1, yT1, x2, yT2, paintT);
 		}
     }
 
@@ -307,6 +318,8 @@ public class BatteryGraph extends Activity {
 		}
     }
     
+	static long lastRecordFileModtime = -1;
+	static BatteryRecord[] lastLog;
     private BatteryRecord[] readLog() throws Exception {
     	ArrayList<BatteryRecord> result = new ArrayList<BatteryRecord>();
 		File root = Environment.getExternalStorageDirectory();
@@ -317,6 +330,11 @@ public class BatteryGraph extends Activity {
 			throw new Exception("logfile '"+batteryLogFile+"' not found");
 		if (!batteryLogFile.canRead())
 			throw new Exception("logfile '"+batteryLogFile+"' not readable");
+		long modtime = batteryLogFile.lastModified();
+		if (modtime == lastRecordFileModtime)
+			return lastLog;
+		// file exists, is readable, and is recently modified -- reread it.
+		lastRecordFileModtime = modtime;
 		FileReader reader = new FileReader(batteryLogFile);
 		BufferedReader in = new BufferedReader(reader);
 		String line = in.readLine();
@@ -329,7 +347,8 @@ public class BatteryGraph extends Activity {
 			line = in.readLine();
 		}
 		in.close();
-		return (BatteryRecord[]) result.toArray(new BatteryRecord[result.size()]);
+		lastLog = (BatteryRecord[]) result.toArray(new BatteryRecord[result.size()]);
+		return lastLog;
     }
 
 	private BatteryRecord parseLine(String line) {

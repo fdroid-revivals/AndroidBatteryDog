@@ -10,7 +10,7 @@
     </LinearLayout>
 	<LinearLayout android:layout_width="fill_parent" android:layout_height="wrap_content" android:orientation="horizontal" >
 	    <Button android:id="@+id/btRawFormat"   android:layout_width="wrap_content"  android:layout_height="wrap_content" android:text="Raw Format"></Button>
-	    <Button android:id="@+id/btShowFormated"   android:layout_width="wrap_content"  android:layout_height="wrap_content" android:text="Show Formated"></Button>
+	    <Button android:id="@+id/btShowFormated"   android:layout_width="wrap_content"  android:layout_height="wrap_content" android:text="Show Formatted"></Button>
 	    <Button android:id="@+id/btGraph"   android:layout_width="wrap_content"  android:layout_height="wrap_content" android:text="Graph"></Button>
     </LinearLayout>
     <EditText android:id="@+id/output"
