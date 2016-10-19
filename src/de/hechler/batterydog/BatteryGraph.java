@@ -85,6 +85,11 @@ public class BatteryGraph extends Activity {
             
             canvas.drawColor(Color.WHITE);
 
+            if ((mRecords == null) || (mRecords.length == 0)) {
+                paint.setColor(Color.BLACK);
+                canvas.drawText("no data found", 10, 50, paint);
+                return;
+            }
             paint.setColor(Color.GREEN);
             for (int i = 0; i <= 10; i++) {
             	if (i == 5)

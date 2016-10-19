@@ -41,24 +41,36 @@ public class BatteryDog_Service extends Service {
 	private File mBatteryLogFile;
 	private int mCount;
 	private int mLastLevel;
+    private boolean mQuitThread;
+    private boolean mThreadRunning;
+
 
 	
 	@Override
 	public void onStart(Intent intent, int startId) {
 		super.onStart(intent, startId);
-		mCount = 0;
-		registerReceiver(mBatInfoReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-        Toast.makeText(this, "BatteryDog Service started", Toast.LENGTH_SHORT).show();
+		if (!mThreadRunning) {
+			mCount = 0;
+			mLastLevel = -1;
+			mQuitThread = false;
+	        // Start up the thread running the service.  Note that we create a
+	        // separate thread because the service normally runs in the process's
+	        // main thread, which we don't want to block.
+	        Thread thr = new Thread(null, mTask, "BatteryDog_Service");
+	        thr.start();
+			registerReceiver(mBatInfoReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+	        Toast.makeText(this, "BatteryDog Service started", Toast.LENGTH_SHORT).show();
+		}
 	}
 	
 	@Override
 	public void onDestroy() {
     	Log.i(TAG, "onDestroy");
+        mQuitThread = true;
+        notifyService();
+        
     	super.onDestroy();
     	unregisterReceiver(mBatInfoReceiver);
-    	mCount += 1;
-    	logLevel(mLastLevel);
-		mCount = 0;
         Toast.makeText(this, "BatteryDog Service stopped", Toast.LENGTH_SHORT).show();
 	}
 
@@ -71,11 +83,10 @@ public class BatteryDog_Service extends Service {
 	private BroadcastReceiver mBatInfoReceiver = new BroadcastReceiver() {
 		@Override
 		public void onReceive(Context ctx, Intent intent) {
-			mCount += 1;
 			try {
-				int level = intent.getIntExtra("level", 0);
-				mLastLevel = level;
-				logLevel(level);
+            	mCount += 1;
+				mLastLevel = intent.getIntExtra("level", 0);
+				notifyService();
 			}
 			catch (Exception e) {
 				Log.e(TAG,e.getMessage(), e);
@@ -85,6 +96,8 @@ public class BatteryDog_Service extends Service {
 	};
 
 	private void logLevel(int level) {
+		if (level == -1)
+			return;
 		try {
 			FileWriter out = null;
 			if (mBatteryLogFile != null) {
@@ -115,5 +128,35 @@ public class BatteryDog_Service extends Service {
 		}
 	}
 
+	
+    /**
+     * The function that runs in our worker thread
+     */
+    Runnable mTask = new Runnable() {
+
+		public void run() {
+            mThreadRunning = true;
+            Log.i(TAG,"STARTING BATTERYDOG TASK");
+            while (!mQuitThread) {
+				logLevel(mLastLevel);
+                synchronized (BatteryDog_Service.this) {
+                	try {
+                    	BatteryDog_Service.this.wait();
+                	} catch (Exception ignore) {}
+                }
+            }
+            mThreadRunning = false;
+			logLevel(mLastLevel);
+            Log.i(TAG,"LEAVING BATTERYDOG TASK");
+        }
+
+    };
+	
+
+	public void notifyService() {
+		synchronized (BatteryDog_Service.this) {
+			BatteryDog_Service.this.notifyAll();
+		}
+	}
 }
 

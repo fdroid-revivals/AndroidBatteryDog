@@ -163,14 +163,13 @@ public class BatteryDog extends Activity {
 		if (line == null)
 			return line;
 		String[] split = line.split("[;]");
-		if (split.length != 2)
+		if (split.length != 3)
 			return line;
-		Long time = Long.parseLong(split[0]);
+		Long time = Long.parseLong(split[1]);
 //		Calendar cal = Calendar.getInstance();
 //		cal.setTimeInMillis(time);
 		String timestamp = sdf.format(new Date(time));
-		String millis = Long.toString(1000 + (time%1000)).substring(1);
-		return timestamp + "," + millis + " " + split[1] + "%";
+		return split[0]+" "+timestamp + " " + split[2] + "%";
 	}
     
 }
