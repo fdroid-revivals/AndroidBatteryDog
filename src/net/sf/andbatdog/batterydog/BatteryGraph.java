@@ -63,7 +63,8 @@ public class BatteryGraph extends Activity {
 	private long h = height - margYTop  - margYBottom;
 
 	private long msecPerHour = 1000*60*60;
-	private long mDeltaTime = 24*msecPerHour;
+	//private long mDeltaTime = 24*msecPerHour;
+    private long mDeltaTime = 0;
 	private long mOffset = 0;
 	private GraphView mGraphView;
 	
@@ -218,8 +219,14 @@ public class BatteryGraph extends Activity {
             
 			canvas.drawColor(Color.BLACK);
 
+            paintP.setTextSize(paintP.getTextSize()*3);
+            paintV.setTextSize(paintV.getTextSize()*3);
+            paintT.setTextSize(paintT.getTextSize()*3);
+            paintD.setTextSize(paintD.getTextSize()*3);
+            
             if ((mRecords == null) || (mRecords.length == 0)) {
                 paint.setColor(Color.WHITE);
+                paint.setTextSize(paint.getTextSize()*3);
                 canvas.drawText("no data found", 10, 50, paint);
                 return;
             }
@@ -266,16 +273,17 @@ public class BatteryGraph extends Activity {
             	float y = margYBottom+h*(10-i)/10;
             	canvas.drawLine(x, y, x+w, y, paint);
 			}
-        	canvas.drawText("100%", margXLeft, margYBottom+13, paintP);
+            
+        	canvas.drawText("100%", margXLeft, margYBottom+26, paintP);
         	canvas.drawText("4V", margXLeft, margYBottom+h*6/10+13, paintV);
-        	canvas.drawText("30°", margXLeft, margYBottom+h*7/10+13, paintT);
+        	canvas.drawText("30Â°C", margXLeft, margYBottom+h*7/10+13, paintT);
         	canvas.drawText("10%/hr", margXLeft, margYBottom+h*9/10+13, paintD);
 
-        	canvas.drawText("100%", margXLeft+w-26, margYBottom+13, paintP);
-        	canvas.drawText("4V", margXLeft+w-20, margYBottom+h*6/10+13, paintV);
-        	canvas.drawText("30°", margXLeft+w-20, margYBottom+h*7/10+13, paintT);
-        	canvas.drawText("2V", margXLeft+w-20, margYBottom+h*10/10, paintV);
-        	canvas.drawText("10%/hr", margXLeft+w-45, margYBottom+h*9/10+13, paintD);
+        	canvas.drawText("100%", margXLeft+w-78, margYBottom+26, paintP);
+        	canvas.drawText("4V", margXLeft+w-40, margYBottom+h*6/10+13, paintV);
+        	canvas.drawText("30Â°C", margXLeft+w-80, margYBottom+h*7/10+13, paintT);
+        	canvas.drawText("2V", margXLeft+w-60, margYBottom+h*10/10, paintV);
+        	canvas.drawText("10%/hr", margXLeft+w-105, margYBottom+h*9/10+13, paintD);
 		}
 
 		private void drawRecordLine(Canvas canvas, 

@@ -73,7 +73,7 @@ public class BatteryDog_Service extends Service {
     	unregisterReceiver(mBatInfoReceiver);
         Toast.makeText(this, "BatteryDog Service stopped", Toast.LENGTH_SHORT).show();
 	}
-
+    
 	@Override
 	public IBinder onBind(Intent intent) {
 		return null;

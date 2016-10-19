@@ -37,11 +37,15 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
+import android.view.*;
+import android.util.*;
 
 public class BatteryDog extends Activity {
 
 	private static final int OUTPUT_LINES = 100;
 	private static final int LINE_LENGTH = 50;
+    private static final int MENU_CLEAR_LOG = 1;
+    private static final int MENU_INFO = 2;
 
 	private static final String TAG = "BATDOG";
 	
@@ -52,19 +56,21 @@ public class BatteryDog extends Activity {
 	private Button btGraph;
 	private EditText mOutput;
 	
-
+    private Boolean isServiceRunning = false;
+    
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.battery_dog);
+		setContentView(R.layout.layout_main);
         mOutput= (EditText) findViewById(R.id.output);
+        mOutput.setKeyListener(null);
         
         // find buttons in view
         btStart = ((Button) findViewById(R.id.btStart));
         btStop = ((Button) findViewById(R.id.btStop));
         btRawFormat= ((Button) findViewById(R.id.btRawFormat));
-        btShowFormated= ((Button) findViewById(R.id.btShowFormated));
+        btShowFormated= ((Button) findViewById(R.id.btShowFormatted));
         btGraph = ((Button) findViewById(R.id.btGraph));
 
         // set actions for buttons
@@ -73,14 +79,58 @@ public class BatteryDog extends Activity {
         btRawFormat.setOnClickListener(RawFormatListener);
         btShowFormated.setOnClickListener(ShowFormatedListener);
         btGraph.setOnClickListener(GraphListener);
+        
+        if(new File(Environment.getExternalStorageDirectory(),BatteryDog_Service.LOGFILEPATH).exists())
+        {
+            updateLog(true);
+        }
+        
+        mOutput.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
 	}
 
+
+    /**
+     * Called when your activity's options menu needs to be created.
+     */
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        menu.add(Menu.NONE, MENU_CLEAR_LOG, Menu.NONE, "Clear Battery Stats");
+        menu.add(Menu.NONE, MENU_INFO, Menu.NONE, "Application Info");
+        return true;
+    }
+
+    /**
+     * Called when a menu item is selected.
+     */
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == MENU_CLEAR_LOG) {
+            // clear log
+            if(isServiceRunning == true)
+            {
+                stopService(new Intent(BatteryDog.this, BatteryDog_Service.class));
+                new File(Environment.getExternalStorageDirectory(),BatteryDog_Service.LOGFILEPATH).delete();
+                startService(new Intent(BatteryDog.this, BatteryDog_Service.class));
+            } else {
+                new File(Environment.getExternalStorageDirectory(),BatteryDog_Service.LOGFILEPATH).delete();
+            }
+        }
+        else if (item.getItemId() == MENU_INFO) {
+            // popup app info + gplv2 license
+            
+        }
+        return true;
+    }
+    
     OnClickListener StartServiceListener = new OnClickListener() {
         public void onClick(View v) {
             try {
 	            startService(new Intent(BatteryDog.this, BatteryDog_Service.class));
+                isServiceRunning = true;
 			} catch (Exception e) {
 				Log.e(TAG, e.getMessage(), e);
+                isServiceRunning = false;
                 Toast.makeText(BatteryDog.this, "Start Service failed: "+e.getMessage(), Toast.LENGTH_SHORT).show();
 			}
         }
@@ -92,6 +142,7 @@ public class BatteryDog extends Activity {
         public void onClick(View v) {
         	try {
 	            stopService(new Intent(BatteryDog.this, BatteryDog_Service.class));
+                isServiceRunning = false;
 			} catch (Exception e) {
 				Log.e(TAG, e.getMessage(), e);
 	            Toast.makeText(BatteryDog.this, "Stop Service failed: "+e.getMessage(), Toast.LENGTH_SHORT).show();
@@ -142,6 +193,11 @@ public class BatteryDog extends Activity {
 				in.readLine();
 			}
 			String line = in.readLine();
+            if (doFormat)
+            {
+                text.delete(0, text.length());
+                text.append("Nr;TimeMillis;level;voltage;temperature\n");
+            }
 			while (line != null) {
 				if (doFormat) {
 					line = parseLine(line);
@@ -169,8 +225,11 @@ public class BatteryDog extends Activity {
 		String[] split = line.split("[;]");
 		if (split.length < 6)
 			return line;
-		if (split[0].equals("Nr"))
-			return line;
+        // this looks pretty bad, and doesn't exactly fit with
+        // the data being output.
+		//if (line.contains("Nr"))
+			//return "Nr;TimeMillis;level;voltage;temperature";
+        // Ex. 1. 00:09:29 56% 3.83V 35°C
 		try {
 			int count = Integer.parseInt(split[0]);
 			long time = Long.parseLong(split[1]);
@@ -187,8 +246,7 @@ public class BatteryDog extends Activity {
 					.append(timestamp).append(" ")
 					.append(percent).append("% ")
 					.append(dfV.format(v)).append("V ")
-					.append(dfT.format(t)).append("� ")
-					;
+					.append(dfT.format(t)).append("°C");
 //			for (int i = 6; i < split.length; i++) {
 //				result.append(" ").append(split[i]);
 //			}
