@@ -285,6 +285,15 @@ public class BatteryGraph extends Activity {
 			float yV2 = margYBottom+h-(h*2*(rec.voltage-2000)) / 10000;
 			float yT2 = margYBottom+h-(h*rec.temperature) / 1000;
 			
+			if (x1 < 0) { 
+				// clip to left edge; very large -ve X values cause gfx probs on Android.
+				// Maybe it's using shorts internally somewhere.
+				float dx_frac=(-x1)/(x2-x1);
+				yP1 = (yP2-yP1)*dx_frac+yP1;
+				yV1 = (yV2-yV1)*dx_frac+yV1;
+				yT1 = (yT2-yT1)*dx_frac+yT1;
+				x1 = 0;
+			}
 			canvas.drawLine(x1, yP1, x2, yP2, paintP);
 			canvas.drawLine(x1, yV1, x2, yV2, paintV);
 			canvas.drawLine(x1, yT1, x2, yT2, paintT);
@@ -337,13 +346,18 @@ public class BatteryGraph extends Activity {
 		lastRecordFileModtime = modtime;
 		FileReader reader = new FileReader(batteryLogFile);
 		BufferedReader in = new BufferedReader(reader);
+		long currentTime = -1;
 		String line = in.readLine();
 		while (line != null) {
 			BatteryRecord rec = parseLine(line);
 			if (rec == null)
 				Log.e(TAG, "could not parse line: '"+line+"'");
-			else 
+			else if (rec.timestamp < currentTime)
+				Log.e(TAG, "ignoring '"+line+"' since it's older than prev log line");
+			else {
 				result.add(rec);
+				currentTime = rec.timestamp;
+			}
 			line = in.readLine();
 		}
 		in.close();
