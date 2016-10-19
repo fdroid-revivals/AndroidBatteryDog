@@ -130,6 +130,7 @@ public class BatteryGraph extends Activity {
     private class GraphView extends View {
         private Paint   mPaint = new Paint();
     	private BatteryRecord[] mRecords;
+    	private float mLastX;
         
         private void readRecords() {
         	try {
@@ -143,10 +144,15 @@ public class BatteryGraph extends Activity {
         @Override
         public boolean onTouchEvent(MotionEvent event) {
         	super.onTouchEvent(event);
-        	if (event.getAction() == MotionEvent.ACTION_MOVE) {
-        		float oldX = event.getHistoricalX(0);
-        		float x = event.getX();
-        		float dx = x-oldX;
+        	if (event.getAction() == MotionEvent.ACTION_DOWN) {
+        		mLastX = event.getRawX();
+        	}
+        	else if (event.getAction() == MotionEvent.ACTION_MOVE) {
+
+        		Log.i(TAG, event.toString()+" - " + event.getHistorySize());
+        		float x = event.getRawX();
+        		float dx = x-mLastX;
+        		mLastX = x;
         		long ldx = (long)(mDeltaTime*dx/width);
         		mOffset -= ldx;
     			if (mOffset > 0)
