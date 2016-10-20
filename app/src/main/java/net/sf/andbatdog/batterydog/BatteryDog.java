@@ -89,7 +89,6 @@ public class BatteryDog extends Activity {
         mOutput.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
     }
 
-
     /**
      * Called when your activity's options menu needs to be created.
      */
@@ -117,7 +116,8 @@ public class BatteryDog extends Activity {
             }
         } else if (item.getItemId() == MENU_INFO) {
             // popup app info + gplv2 license
-
+            Intent intent = new Intent(BatteryDog.this, InfoActivity.class);
+            startActivity(intent);
         }
         return true;
     }
