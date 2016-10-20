@@ -58,7 +58,9 @@ public class BatteryDog extends Activity {
 
     private Boolean isServiceRunning = false;
 
-    /** Called when the activity is first created. */
+    /**
+     * Called when the activity is first created.
+     */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
