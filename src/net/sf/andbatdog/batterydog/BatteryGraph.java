@@ -42,6 +42,7 @@ import android.view.WindowManager;
 
 public class BatteryGraph extends Activity {
 
+
 	private final static String TAG = "BATDOG.graph";
 
 	private final static int MENU_4H    = 1;
@@ -61,7 +62,8 @@ public class BatteryGraph extends Activity {
 	private long w = width  - margXLeft - margXRight;
 	private long h = height - margYTop  - margYBottom;
 
-	private long mDeltaTime = 24*60*60*1000;
+	private long msecPerHour = 1000*60*60;
+	private long mDeltaTime = 24*msecPerHour;
 	private long mOffset = 0;
 	private GraphView mGraphView;
 	
@@ -210,6 +212,9 @@ public class BatteryGraph extends Activity {
 			Paint paintT = new Paint();
             paintT.setStrokeWidth(0);
             paintT.setColor(Color.GREEN);
+			Paint paintD = new Paint(); // discharge rate
+            paintD.setStrokeWidth(0);
+            paintD.setColor(Color.CYAN);
             
 			canvas.drawColor(Color.BLACK);
 
@@ -219,13 +224,14 @@ public class BatteryGraph extends Activity {
                 return;
             }
             
-            drawMarker(canvas, paintP, paintV, paintT);
+            drawMarker(canvas, paintP, paintV, paintT, paintD);
             
             int maxRec = mRecords.length;
             long minTime = mRecords[0].timestamp;
             long maxTime = mRecords[maxRec-1].timestamp;
             long dTime = maxTime-minTime;
             if (mDeltaTime != 0) {
+            	// make minTime, maxTime be min and max time on screen
             	dTime = mDeltaTime;
             	minTime = maxTime-dTime+mOffset;
             	maxTime = minTime+mDeltaTime;
@@ -235,12 +241,10 @@ public class BatteryGraph extends Activity {
         	BatteryRecord oldRec;
 			for (int i = 0; i <= maxRec; i++) {
             	if (i == 0)
-            		// oldRec = new BatteryRecord(0, minTime, 0, 100, 0, 0);
             		oldRec = mRecords[0];
             	else
             		oldRec = mRecords[i-1];
             	if (i == maxRec)
-            		// rec = new BatteryRecord(0, maxTime, 0, 100, 0, 0);
             		rec = mRecords[maxRec-1];
             	else
             		rec = mRecords[i];
@@ -248,9 +252,10 @@ public class BatteryGraph extends Activity {
             	if (rec.timestamp >= minTime && oldRec.timestamp <= maxTime) // clip to screen
             		drawRecordLine(canvas, rec, oldRec, minTime, dTime, paintP, paintV, paintT);
 			}
+			drawDischargeRateGraph(canvas, minTime, maxTime, paintD);
         }
 
-		private void drawMarker(Canvas canvas, Paint paintP, Paint paintV, Paint paintT) {
+		private void drawMarker(Canvas canvas, Paint paintP, Paint paintV, Paint paintT, Paint paintD) {
 			Paint paint = new Paint();
             for (int i = 0; i <= 10; i++) {
             	if (i == 5)
@@ -264,16 +269,19 @@ public class BatteryGraph extends Activity {
         	canvas.drawText("100%", margXLeft, margYBottom+13, paintP);
         	canvas.drawText("4V", margXLeft, margYBottom+h*6/10+13, paintV);
         	canvas.drawText("30°", margXLeft, margYBottom+h*7/10+13, paintT);
+        	canvas.drawText("10%/hr", margXLeft, margYBottom+h*9/10+13, paintD);
+
         	canvas.drawText("100%", margXLeft+w-26, margYBottom+13, paintP);
         	canvas.drawText("4V", margXLeft+w-20, margYBottom+h*6/10+13, paintV);
         	canvas.drawText("30°", margXLeft+w-20, margYBottom+h*7/10+13, paintT);
         	canvas.drawText("2V", margXLeft+w-20, margYBottom+h*10/10, paintV);
+        	canvas.drawText("10%/hr", margXLeft+w-45, margYBottom+h*9/10+13, paintD);
 		}
 
 		private void drawRecordLine(Canvas canvas, 
 				BatteryRecord rec, BatteryRecord oldRec,
 				long minTime, long dTime,
-				Paint paintP, Paint paintV, Paint paintT 
+				Paint paintP, Paint paintV, Paint paintT
 				) {
 
 			float x1 = margXLeft+(w*(oldRec.timestamp-minTime)) / dTime; 
@@ -297,6 +305,33 @@ public class BatteryGraph extends Activity {
 			canvas.drawLine(x1, yP1, x2, yP2, paintP);
 			canvas.drawLine(x1, yV1, x2, yV2, paintV);
 			canvas.drawLine(x1, yT1, x2, yT2, paintT);
+		}
+
+		private void drawDischargeRateGraph(Canvas canvas, long minTime, long maxTime, Paint paint) {
+			int nSteps = (int)width/2; // save time by not drawing every single point
+			long timeSpan = maxTime-minTime;
+			long dTime = timeSpan/60; // time to integrate charge over.  Increase constant for smoother graph, decrease for more detail.
+			long timeStep = timeSpan/nSteps;
+			float chargeScale = mRecords[0].scale;
+			BatteryRecordCursor now = new BatteryRecordCursor(mRecords);
+			BatteryRecordCursor prev = new BatteryRecordCursor(mRecords);
+			float x1 = margXLeft;
+			float y1 = margYBottom; 
+			for (int i = 0; i < nSteps; i++) {
+				long t = minTime + timeStep * i;
+				now.moveToTime(t);
+				prev.moveToTime(t-dTime);
+				float chargeNow = now.getCharge();
+				float chargePrev = prev.getCharge();
+				// dCharge is discharge rate in percent per hour
+				float dCharge = -(chargeNow-chargePrev) / dTime * msecPerHour;
+				float x2 = margXLeft+(w*(t-minTime)) / timeSpan; 
+				float y2 = margYBottom+h-(h*dCharge) / chargeScale; 
+				if (i>0)
+					canvas.drawLine(x1, y1, x2, y2, paint);
+				x1 = x2;
+				y1 = y2;
+			}
 		}
     }
 
@@ -388,6 +423,62 @@ public class BatteryGraph extends Activity {
 		}
 	}
     
-    
+	// BatteryRecordCursor allows looking up the charge level 
+	// at any point in time, and quickly finding the charge at 
+	// a later time (incrementally)
+	class BatteryRecordCursor {
+		long currentTime;
+		int currentRec;
+		BatteryRecord[] records;
+
+		public BatteryRecordCursor(BatteryRecord[] records) {
+			// preset to latest time
+			this.records = records;
+			currentRec = records.length-1;
+			currentTime = records[currentRec].timestamp;
+		}
+		float getCharge() {
+			// get the charge at the currentTime (assumes currentRec is set correctly)
+			BatteryRecord r0 = records[currentRec];
+			BatteryRecord r1 = records[currentRec >= records.length ? currentRec : currentRec+1];
+			long t0 = r0.timestamp;
+			long t1 = r1.timestamp;
+			float c0 = r0.level;
+			float c1 = r1.level;
+			return c0 + (c1 - c0)*((currentTime-t0)/(float)(t1-t0));
+		}
+		void setTime(long t) {
+			// find the record containing t (the latest with timestamp <= t)
+			// This is slow, linear search from the end.
+			currentRec = 0;
+			currentTime = records[0].timestamp;
+			for (int i = records.length-1; i > 0; i--) {
+				if (records[i].timestamp <= t) {
+					currentRec = i;
+					currentTime = t;
+					break;
+				}
+			}
+		}
+		float moveToTime(long t) {
+			// Move from the current time to new time t.
+			// If t is ahead of current time but not by much, this is fast.
+			if (t < currentTime) { 
+				// moving backward: this is slow
+				setTime(t);
+				return getCharge();
+			}
+			else {
+				// moving forward; search from current location
+				// This is the intended use.
+				while (currentRec < records.length - 1 && records[currentRec+1].timestamp <= t) {
+					currentRec++;
+				}
+				currentTime = t;
+				return getCharge();
+			}
+		}
+	}
+
 }
 
