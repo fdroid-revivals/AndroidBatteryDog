@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_height="match_parent"
+    android:layout_width="match_parent">
+
+    <View
+        android:background="?android:attr/dividerVertical"
+        android:layout_height="1dp"
+        android:layout_width="match_parent"
+        android:layout_centerInParent="true"
+        android:id="@+id/centerDivider"
+        android:visibility="invisible" />
+
+    <EditText
+        android:inputType="textMultiLine"
+        android:layout_width="wrap_content"
+        android:ems="10"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/centerDivider"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentBottom="true"
+        android:text="[press refresh]"
+        android:id="@+id/output"
+        android:typeface="monospace"
+        android:textIsSelectable="true"
+        android:gravity="top|left" />
+
+    <Button
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:text="Graph"
+        android:layout_above="@id/centerDivider"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentRight="true"
+        android:id="@+id/btGraph" />
+
+    <View
+        android:background="?android:attr/dividerHorizontal"
+        android:layout_height="match_parent"
+        android:layout_width="1dp"
+        android:layout_centerInParent="true"
+        android:visibility="invisible"
+        android:id="@+id/layoutmainView1" />
+
+    <Button
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:text="Show Raw Data"
+        android:layout_above="@id/btGraph"
+        android:layout_alignParentLeft="true"
+        android:layout_toStartOf="@id/layoutmainView1"
+        android:id="@+id/btRawFormat" />
+
+    <Button
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:text="Show Formatted Data"
+        android:layout_above="@id/btGraph"
+        android:layout_alignParentRight="true"
+        android:layout_toEndOf="@id/layoutmainView1"
+        android:id="@+id/btShowFormatted" />
+
+    <Button
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:text="Start"
+        android:layout_toLeftOf="@id/layoutmainView1"
+        android:layout_alignParentLeft="true"
+        android:layout_above="@id/btRawFormat"
+        android:layout_alignParentTop="true"
+        android:id="@+id/btStart" />
+
+    <Button
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:text="Stop"
+        android:layout_toRightOf="@id/layoutmainView1"
+        android:layout_alignParentRight="true"
+        android:layout_above="@id/btShowFormatted"
+        android:layout_alignParentTop="true"
+        android:id="@+id/btStop" />
+
+</RelativeLayout>
+
