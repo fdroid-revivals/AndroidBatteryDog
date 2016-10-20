@@ -65,6 +65,7 @@ public class BatteryGraph extends Activity {
     //private long mDeltaTime = 24*msecPerHour;
     private long mDeltaTime = 0;
     private long mOffset = 0;
+    private Menu hideableMenu;
     private GraphView mGraphView;
 
     @Override
@@ -80,6 +81,7 @@ public class BatteryGraph extends Activity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
+        hideableMenu = menu;
         menu.add(Menu.NONE, MENU_4H, Menu.NONE, "4h");
         menu.add(Menu.NONE, MENU_8H, Menu.NONE, "8h");
         menu.add(Menu.NONE, MENU_24H, Menu.NONE, "24h");
@@ -218,7 +220,14 @@ public class BatteryGraph extends Activity {
             if ((mRecords == null) || (mRecords.length == 0)) {
                 paint.setColor(Color.WHITE);
                 paint.setTextSize(paint.getTextSize() * 3);
-                canvas.drawText("no data found", 10, 50, paint);
+                canvas.drawText("No data found.", 10, 50, paint);
+                hideableMenu.clear();
+                return;
+            } else if (mRecords.length == 1) {
+                paint.setColor(Color.WHITE);
+                paint.setTextSize(paint.getTextSize() * 3);
+                canvas.drawText("Not enough data.", 10, 50, paint);
+                hideableMenu.clear();
                 return;
             }
 
