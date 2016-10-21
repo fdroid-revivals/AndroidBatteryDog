@@ -171,12 +171,15 @@ public class BatteryDog extends Activity {
         try {
             File root = Environment.getExternalStorageDirectory();
             if (root == null)
-                throw new Exception("external storage dir not found");
+			    throw new Exception("[data not readable]");
+                //throw new Exception("external storage dir not found");
             File batteryLogFile = new File(root, BatteryDog_Service.LOGFILEPATH);
             if (!batteryLogFile.exists())
-                throw new Exception("logfile '" + batteryLogFile + "' not found");
+				throw new Exception("[no data available]");
+                //throw new Exception("logfile '" + batteryLogFile + "' not found");
             if (!batteryLogFile.canRead())
-                throw new Exception("logfile '" + batteryLogFile + "' not readable");
+			    throw new Exception("[data not readable]");
+                //throw new Exception("logfile '" + batteryLogFile + "' not readable");
             long len = batteryLogFile.length();
             int size = (int) Math.min((long) OUTPUT_LINES * LINE_LENGTH, len);
             StringBuffer text = new StringBuffer(size);

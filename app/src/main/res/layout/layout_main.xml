@@ -20,7 +20,7 @@
         android:layout_alignParentLeft="true"
         android:layout_alignParentRight="true"
         android:layout_alignParentBottom="true"
-        android:text="[press refresh]"
+        android:text="[no data available]"
         android:id="@+id/output"
         android:typeface="monospace"
         android:textIsSelectable="true"
