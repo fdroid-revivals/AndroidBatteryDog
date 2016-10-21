@@ -174,7 +174,6 @@ public class BatteryDog_Service extends Service {
                 }
             }
             mThreadRunning = false;
-            logBattery(mLastBatteryIntent);
             Log.i(TAG, "LEAVING BATTERYDOG TASK");
         }
 

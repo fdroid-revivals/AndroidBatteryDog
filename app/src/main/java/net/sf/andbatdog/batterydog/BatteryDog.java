@@ -39,6 +39,8 @@ import java.io.FileReader;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.*;
+import android.app.*;
 
 public class BatteryDog extends Activity {
 
@@ -54,9 +56,15 @@ public class BatteryDog extends Activity {
     private Button btRawFormat;
     private Button btShowFormated;
     private Button btGraph;
-    private EditText mOutput;
+    private static EditText mOutput;
 
     private Boolean isServiceRunning = false;
+	
+	private Timer mActivityTransitionTimer;
+    private TimerTask mActivityTransitionTimerTask;
+    public boolean wasInBackground = false;
+	public static boolean isInBackground = false;
+    private final long MAX_ACTIVITY_TRANSITION_TIME_MS = 2000;
 
     /**
      * Called when the activity is first created.
@@ -89,6 +97,26 @@ public class BatteryDog extends Activity {
         mOutput.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
     }
 
+	@Override
+	public void onPause()
+	{
+		super.onPause();
+		isInBackground = true;
+		startActivityTransitionTimer();
+	}
+	
+	@Override
+	public void onResume()
+	{
+		super.onResume();
+		isInBackground = false;
+		if (wasInBackground)
+		{
+			updateLog(true);
+		}
+		stopActivityTransitionTimer();
+	}
+	
     /**
      * Called when your activity's options menu needs to be created.
      */
@@ -113,6 +141,7 @@ public class BatteryDog extends Activity {
                 startService(new Intent(BatteryDog.this, BatteryDog_Service.class));
             } else {
                 new File(Environment.getExternalStorageDirectory(), BatteryDog_Service.LOGFILEPATH).delete();
+				updateLog(true);
             }
         } else if (item.getItemId() == MENU_INFO) {
             // popup app info + gplv2 license
@@ -150,7 +179,7 @@ public class BatteryDog extends Activity {
 
     OnClickListener RawFormatListener = new OnClickListener() {
         public void onClick(View v) {
-            updateLog(false);
+            updateLog(true);
         }
     };
 
@@ -167,7 +196,7 @@ public class BatteryDog extends Activity {
     };
 
 
-    private void updateLog(boolean doFormat) {
+    private static void updateLog(boolean doFormat) {
         try {
             File root = Environment.getExternalStorageDirectory();
             if (root == null)
@@ -214,11 +243,11 @@ public class BatteryDog extends Activity {
         }
     }
 
-    private SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-    private DecimalFormat dfT = new DecimalFormat("###.#");
-    private DecimalFormat dfV = new DecimalFormat("##.###");
+    private static SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+    private static DecimalFormat dfT = new DecimalFormat("###.#");
+    private static DecimalFormat dfV = new DecimalFormat("##.###");
 
-    private String parseLine(String line) {
+    private static String parseLine(String line) {
         if (line == null)
             return line;
         String[] split = line.split("[;]");
@@ -256,4 +285,38 @@ public class BatteryDog extends Activity {
         }
     }
 
+	// a wonderful hacky thing by d60402 on StackOverflow
+	// http://stackoverflow.com/a/15573121
+
+	public void startActivityTransitionTimer() {
+		this.mActivityTransitionTimer = new Timer();
+		this.mActivityTransitionTimerTask = new TimerTask() {
+			public void run() {
+				wasInBackground = true;
+			}
+		};
+
+		this.mActivityTransitionTimer.schedule(mActivityTransitionTimerTask,
+											   MAX_ACTIVITY_TRANSITION_TIME_MS);
+	}
+
+	public void stopActivityTransitionTimer() {
+		if (this.mActivityTransitionTimerTask != null) {
+			this.mActivityTransitionTimerTask.cancel();
+		}
+
+		if (this.mActivityTransitionTimer != null) {
+			this.mActivityTransitionTimer.cancel();
+		}
+
+		wasInBackground = false;
+	}
+	
+	public static void updateLogIfOpen()
+	{
+		if (isInBackground == false)
+		{
+			updateLog(true);
+		}
+	}
 }
