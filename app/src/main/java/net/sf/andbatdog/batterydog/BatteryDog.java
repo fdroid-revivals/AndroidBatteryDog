@@ -41,6 +41,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.*;
 import android.app.*;
+import android.content.*;
 
 public class BatteryDog extends Activity {
 
@@ -57,8 +58,6 @@ public class BatteryDog extends Activity {
     private Button btShowFormated;
     private Button btGraph;
     private static EditText mOutput;
-
-    private Boolean isServiceRunning = false;
 	
 	private Timer mActivityTransitionTimer;
     private TimerTask mActivityTransitionTimerTask;
@@ -66,6 +65,8 @@ public class BatteryDog extends Activity {
 	public static boolean isInBackground = false;
     private final long MAX_ACTIVITY_TRANSITION_TIME_MS = 2000;
 
+	public Intent BatteryDogService;
+	
     /**
      * Called when the activity is first created.
      */
@@ -73,6 +74,8 @@ public class BatteryDog extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.layout_main);
+		BatteryDogService = new Intent(BatteryDog.this, BatteryDog_Service.class);
+		
         mOutput = (EditText) findViewById(R.id.output);
         mOutput.setKeyListener(null);
 
@@ -90,6 +93,8 @@ public class BatteryDog extends Activity {
         btShowFormated.setOnClickListener(ShowFormatedListener);
         btGraph.setOnClickListener(GraphListener);
 
+		updateButtons();
+		
         if (new File(Environment.getExternalStorageDirectory(), BatteryDog_Service.LOGFILEPATH).exists()) {
             updateLog(true);
         }
@@ -113,6 +118,7 @@ public class BatteryDog extends Activity {
 		if (wasInBackground)
 		{
 			updateLog(true);
+			updateButtons();
 		}
 		stopActivityTransitionTimer();
 	}
@@ -135,7 +141,7 @@ public class BatteryDog extends Activity {
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == MENU_CLEAR_LOG) {
             // clear log
-            if (isServiceRunning == true) {
+            if (isMyServiceRunning(BatteryDog_Service.class)) {
                 stopService(new Intent(BatteryDog.this, BatteryDog_Service.class));
                 new File(Environment.getExternalStorageDirectory(), BatteryDog_Service.LOGFILEPATH).delete();
                 startService(new Intent(BatteryDog.this, BatteryDog_Service.class));
@@ -154,11 +160,10 @@ public class BatteryDog extends Activity {
     OnClickListener StartServiceListener = new OnClickListener() {
         public void onClick(View v) {
             try {
-                startService(new Intent(BatteryDog.this, BatteryDog_Service.class));
-                isServiceRunning = true;
+                startService(BatteryDogService);
+				updateButtons();
             } catch (Exception e) {
                 Log.e(TAG, e.getMessage(), e);
-                isServiceRunning = false;
                 Toast.makeText(BatteryDog.this, "Start Service failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
         }
@@ -168,8 +173,8 @@ public class BatteryDog extends Activity {
     OnClickListener StopServiceListener = new OnClickListener() {
         public void onClick(View v) {
             try {
-                stopService(new Intent(BatteryDog.this, BatteryDog_Service.class));
-                isServiceRunning = false;
+                stopService(BatteryDogService);
+				updateButtons();
             } catch (Exception e) {
                 Log.e(TAG, e.getMessage(), e);
                 Toast.makeText(BatteryDog.this, "Stop Service failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
@@ -314,9 +319,33 @@ public class BatteryDog extends Activity {
 	
 	public static void updateLogIfOpen()
 	{
+		// WIP
 		if (isInBackground == false)
 		{
 			updateLog(true);
 		}
+	}
+	
+	public void updateButtons()
+	{
+		if (isMyServiceRunning(BatteryDog_Service.class))
+		{
+			btStart.setEnabled(false);
+			btStop.setEnabled(true);
+		} else {
+			btStart.setEnabled(true);
+			btStop.setEnabled(false);
+		}
+	}
+	
+	// this little gem was taken from http://stackoverflow.com/a/5921190
+	private boolean isMyServiceRunning(Class<?> serviceClass) {
+		ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+		for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+			if (serviceClass.getName().equals(service.service.getClassName())) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

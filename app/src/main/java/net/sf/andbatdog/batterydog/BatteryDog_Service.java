@@ -46,8 +46,7 @@ public class BatteryDog_Service extends Service {
     private Intent mLastBatteryIntent;
     private boolean mQuitThread;
     private boolean mThreadRunning;
-
-
+	
     @Override
     public void onCreate() {
         super.onCreate();
@@ -67,7 +66,6 @@ public class BatteryDog_Service extends Service {
         Log.i(TAG, "onDestroy");
         mQuitThread = true;
         notifyService();
-
         super.onDestroy();
         unregisterReceiver(mBatInfoReceiver);
         Toast.makeText(this, "BatteryDog Service stopped", Toast.LENGTH_SHORT).show();
