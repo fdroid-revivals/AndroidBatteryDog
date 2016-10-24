@@ -1,13 +1,13 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 23
+    compileSdkVersion 25
     buildToolsVersion "25.0.0"
 
     defaultConfig {
         applicationId "net.sf.andbatdog.batterydog"
-        minSdkVersion 9
-        targetSdkVersion 19
+        minSdkVersion 21
+        targetSdkVersion 25
     }
 
     buildTypes {

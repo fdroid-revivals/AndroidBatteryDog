@@ -35,6 +35,8 @@ This app uses the GPLv2 License, which you can find a copy of below.
  - [X] Retain commit history
  - [X] Make it work on newer versions of Android
  - [X] Fix that one bug with the graph crashing
+ - [X] Disable the Start/Stop buttons accordingly
  - [ ] Ensure that the service starts/stops/updates seamlessly
- - [ ] Allow the service to persist through reboots
+ - [ ] Allow a timer to be set at intervals of 1, 5, 10, 15, and infinity minutes.
+ - [ ] Allow the service to persist through reboots (only with infinite)
  - [ ] Add 6.0's granular permissions
