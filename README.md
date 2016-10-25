@@ -39,4 +39,3 @@ This app uses the GPLv2 License, which you can find a copy of below.
  - [ ] Ensure that the service starts/stops/updates seamlessly
  - [ ] Allow a timer to be set at intervals of 1, 5, 10, 15, and infinity minutes.
  - [ ] Allow the service to persist through reboots (only with infinite)
- - [ ] Add 6.0's granular permissions
