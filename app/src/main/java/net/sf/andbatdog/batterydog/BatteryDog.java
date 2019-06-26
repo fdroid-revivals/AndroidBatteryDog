@@ -20,8 +20,11 @@
  *******************************************************************************/
 package net.sf.andbatdog.batterydog;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.TypedValue;
@@ -100,6 +103,8 @@ public class BatteryDog extends Activity {
         }
 
         mOutput.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+
+        isStoragePermissionGranted();
     }
 
 	@Override
@@ -199,6 +204,25 @@ public class BatteryDog extends Activity {
             startActivity(new Intent(BatteryDog.this, BatteryGraph.class));
         }
     };
+
+    public  boolean isStoragePermissionGranted() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED) {
+                Log.i(TAG,"Permission is granted");
+                return true;
+            } else {
+
+                Log.i(TAG,"Permission is revoked");
+                requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+                return false;
+            }
+        }
+        else { //permission is automatically granted on sdk<23 upon installation
+            Log.i(TAG,"Permission is granted");
+            return true;
+        }
+    }
 
 
     private static void updateLog(boolean doFormat) {
